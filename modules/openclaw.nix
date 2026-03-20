@@ -191,6 +191,10 @@ in
           chmod 600 "${cfg.authTokenFile}"
           echo "Generated new gateway auth token at ${cfg.authTokenFile}"
         fi
+        # Initialize openclaw config if missing
+        if [ ! -f "${cfg.dataDir}/openclaw.json" ]; then
+          ${cfg.package}/bin/openclaw setup --workspace ${cfg.dataDir}/workspace
+        fi
       '';
 
       serviceConfig = {
