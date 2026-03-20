@@ -5,9 +5,9 @@ let
   settingsFormat = pkgs.formats.json { };
 
   # Generate gateway config
+  
   gatewayConfig = {
-    host = "127.0.0.1";
-    port = cfg.gatewayPort;
+    gateway.mode = "local";
     auth = {
       enabled = true;
       tokenFile = cfg.authTokenFile;
@@ -16,7 +16,26 @@ let
       security = cfg.toolSecurity;
       allowlist = cfg.toolAllowlist;
     };
-  } // cfg.extraGatewayConfig;
+  }
+  // lib.optionalAttrs (cfg.modelProvider == "ollama") {
+    agents.defaults.model.primary = "ollama/${cfg.ollamaModel}";
+    models = {
+      mode = "merge";
+      providers.ollama = {
+        baseUrl = cfg.ollamaBaseUrl;
+        apiKey = "ollama";
+        api = "openai";
+        models = [{
+          id = cfg.ollamaModel;
+          contextWindow = 8192;
+          maxTokens = 4096;
+          input = [ "text" ];
+          cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
+        }];
+      };
+    };
+  }
+  // cfg.extraGatewayConfig;
 
   gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" gatewayConfig;
 in
