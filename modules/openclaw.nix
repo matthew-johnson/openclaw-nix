@@ -162,6 +162,18 @@ in
       description = "Path to file containing model API key.";
     };
 
+    ollamaBaseUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "http://127.0.0.1:11434";
+      description = "Base URL for Ollama API. Only used when modelProvider = \"ollama\".";
+    };
+
+    ollamaModel = lib.mkOption {
+      type = lib.types.str;
+      default = "qwen3.5:27b";
+      description = "Ollama model name. Only used when modelProvider = \"ollama\".";
+    };
+
     # --- Updates ---
     autoUpdate = {
       enable = lib.mkEnableOption "automatic OpenClaw updates via systemd timer";
