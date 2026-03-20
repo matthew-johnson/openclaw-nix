@@ -222,10 +222,13 @@ in
           chmod 600 "${cfg.authTokenFile}"
           echo "Generated new gateway auth token at ${cfg.authTokenFile}"
         fi
-        # Initialize openclaw config if missing
-        if [ ! -f "${cfg.dataDir}/openclaw.json" ]; then
-          ${cfg.package}/bin/openclaw setup --workspace ${cfg.dataDir}/workspace
-        fi
+        # Copy Nix-generated config into openclaw home dir on every activation
+        # so config changes deploy cleanly without manual setup steps
+        mkdir -p ${cfg.dataDir}/.openclaw
+        cp ${gatewayConfigFile} ${cfg.dataDir}/.openclaw/openclaw.json
+        chmod 640 ${cfg.dataDir}/.openclaw/openclaw.json
+        mkdir -p ${cfg.dataDir}/workspace
+        mkdir -p ${cfg.dataDir}/agents/main/sessions
       '';
 
       serviceConfig = {
