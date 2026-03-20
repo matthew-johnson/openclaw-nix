@@ -195,7 +195,7 @@ in
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${cfg.package}/bin/openclaw gateway start --config ${gatewayConfigFile}";
+        ExecStart = "${cfg.package}/bin/openclaw gateway --bind loopback --port ${toString cfg.gatewayPort} --auth token";
         Restart = "on-failure";
         RestartSec = 5;
         WorkingDirectory = cfg.dataDir;
@@ -239,9 +239,11 @@ in
           OPENCLAW_HOST = "127.0.0.1";
           OPENCLAW_PORT = toString cfg.gatewayPort;
           NODE_ENV = "production";
-        }
-        (lib.mkIf (cfg.modelApiKeyFile != null) {
           OPENCLAW_MODEL_PROVIDER = cfg.modelProvider;
+        }
+        
+        (lib.mkIf (cfg.modelApiKeyFile != null) {
+          OPENCLAW_API_KEY_FILE = cfg.modelApiKeyFile;
         })
         (lib.mkIf (cfg.telegram.enable && cfg.telegram.tokenFile != null) {
           OPENCLAW_TELEGRAM_ENABLED = "true";
