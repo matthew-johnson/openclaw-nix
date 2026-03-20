@@ -8,25 +8,21 @@ let
   
   gatewayConfig = {
     gateway.mode = "local";
-    auth = {
-      enabled = true;
-      tokenFile = cfg.authTokenFile;
-    };
-    tools = {
-      security = cfg.toolSecurity;
-      allowlist = cfg.toolAllowlist;
-    };
+    agents.defaults.model.primary = 
+      if cfg.modelProvider == "ollama" 
+      then "ollama/${cfg.ollamaModel}"
+      else cfg.modelProvider;
   }
   // lib.optionalAttrs (cfg.modelProvider == "ollama") {
-    agents.defaults.model.primary = "ollama/${cfg.ollamaModel}";
     models = {
       mode = "merge";
       providers.ollama = {
         baseUrl = cfg.ollamaBaseUrl;
         apiKey = "ollama";
-        api = "openai";
+        api = "openai-chat";
         models = [{
           id = cfg.ollamaModel;
+          name = cfg.ollamaModel;
           contextWindow = 8192;
           maxTokens = 4096;
           input = [ "text" ];
