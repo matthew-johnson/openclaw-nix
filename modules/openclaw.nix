@@ -18,8 +18,8 @@ let
       mode = "merge";
       providers.ollama = {
         baseUrl = cfg.ollamaBaseUrl;
-        apiKey = "ollama";
-        api = "openai-chat";
+        apiKey = "ollama-local";
+        api = "ollama";
         models = [{
           id = cfg.ollamaModel;
           name = cfg.ollamaModel;
