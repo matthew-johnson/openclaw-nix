@@ -214,7 +214,7 @@ in
           '.gateway.auth.token = $token | .gateway.remote.token = $token' \
           ${cfg.dataDir}/.openclaw/openclaw.json > ${cfg.dataDir}/.openclaw/openclaw.json.tmp
         mv ${cfg.dataDir}/.openclaw/openclaw.json.tmp ${cfg.dataDir}/.openclaw/openclaw.json
-        chmod 640 ${cfg.dataDir}/.openclaw/openclaw.json
+        chmod 600 ${cfg.dataDir}/.openclaw/openclaw.json
         mkdir -p ${cfg.dataDir}/workspace
         mkdir -p ${cfg.dataDir}/agents/main/sessions
       '';
