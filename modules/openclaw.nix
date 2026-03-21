@@ -7,7 +7,10 @@ let
   # Generate gateway config
   
   gatewayConfig = {
-    gateway.mode = "local";
+    gateway = {
+      mode = "local";
+      trustedProxies = [ "127.0.0.1" ];
+    };
     agents.defaults.model.primary = 
       if cfg.modelProvider == "ollama" 
       then "ollama/${cfg.ollamaModel}"
