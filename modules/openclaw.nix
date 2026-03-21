@@ -211,7 +211,7 @@ in
 
       serviceConfig = {
         Type = "simple";
-	ExecStart = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/openclaw gateway --bind tailnet --port ${toString cfg.gatewayPort} --auth token --token $(cat ${cfg.authTokenFile})'";
+	ExecStart = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/openclaw gateway --bind loopback --tailscale serve --port ${toString cfg.gatewayPort} --auth token --token $(cat ${cfg.authTokenFile})'";
         Restart = "on-failure";
         RestartSec = 5;
         WorkingDirectory = cfg.dataDir;
