@@ -208,6 +208,12 @@ in
         # so config changes deploy cleanly without manual setup steps
         mkdir -p ${cfg.dataDir}/.openclaw
         cp ${gatewayConfigFile} ${cfg.dataDir}/.openclaw/openclaw.json
+        # Inject gateway token into config so CLI can connect
+        TOKEN=$(cat ${cfg.authTokenFile})
+        ${pkgs.jq}/bin/jq --arg token "$TOKEN" \
+          '.gateway.auth.token = $token | .gateway.remote.token = $token' \
+          ${cfg.dataDir}/.openclaw/openclaw.json > ${cfg.dataDir}/.openclaw/openclaw.json.tmp
+        mv ${cfg.dataDir}/.openclaw/openclaw.json.tmp ${cfg.dataDir}/.openclaw/openclaw.json
         chmod 640 ${cfg.dataDir}/.openclaw/openclaw.json
         mkdir -p ${cfg.dataDir}/workspace
         mkdir -p ${cfg.dataDir}/agents/main/sessions
