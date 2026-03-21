@@ -10,6 +10,7 @@ let
     gateway = {
       mode = "local";
       trustedProxies = [ "127.0.0.1" ];
+      port = cfg.gatewayPort;
     };
     agents.defaults.model.primary = 
       if cfg.modelProvider == "ollama" 
