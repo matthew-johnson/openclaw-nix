@@ -199,6 +199,9 @@ in
           chmod 600 "${cfg.authTokenFile}"
           echo "Generated new gateway auth token at ${cfg.authTokenFile}"
         fi
+        # Write token env file for systemd EnvironmentFile
+        echo "OPENCLAW_GATEWAY_TOKEN=$(cat ${cfg.authTokenFile})" > ${cfg.dataDir}/gateway-token.env
+        chmod 600 ${cfg.dataDir}/gateway-token.env
         # Copy Nix-generated config into openclaw home dir on every activation
         # so config changes deploy cleanly without manual setup steps
         mkdir -p ${cfg.dataDir}/.openclaw
@@ -211,6 +214,7 @@ in
       serviceConfig = {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/openclaw gateway --bind loopback --port ${toString cfg.gatewayPort} --auth token";
+	EnvironmentFile = "${cfg.dataDir}/gateway-token.env";
         Restart = "on-failure";
         RestartSec = 5;
         WorkingDirectory = cfg.dataDir;
