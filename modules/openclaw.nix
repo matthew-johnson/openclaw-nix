@@ -12,26 +12,7 @@ let
       if cfg.modelProvider == "ollama" 
       then "ollama/${cfg.ollamaModel}"
       else cfg.modelProvider;
-  }
-  // lib.optionalAttrs (cfg.modelProvider == "ollama") {
-    models = {
-      mode = "merge";
-      providers.ollama = {
-        baseUrl = cfg.ollamaBaseUrl;
-        apiKey = "ollama-local";
-        api = "ollama";
-        models = [{
-          id = cfg.ollamaModel;
-          name = cfg.ollamaModel;
-          contextWindow = 8192;
-          maxTokens = 4096;
-          input = [ "text" ];
-          cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
-        }];
-      };
-    };
-  }
-  // cfg.extraGatewayConfig;
+  } // cfg.extraGatewayConfig;
 
   gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" gatewayConfig;
 in
@@ -275,7 +256,9 @@ in
           NODE_ENV = "production";
           OPENCLAW_MODEL_PROVIDER = cfg.modelProvider;
         }
-        
+        (lib.mkIf (cfg.modelProvider == "ollama") {
+          OLLAMA_API_KEY = "ollama-local";
+        })
         (lib.mkIf (cfg.modelApiKeyFile != null) {
           OPENCLAW_API_KEY_FILE = cfg.modelApiKeyFile;
         })
