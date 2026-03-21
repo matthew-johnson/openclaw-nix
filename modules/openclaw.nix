@@ -208,7 +208,7 @@ in
         mkdir -p ${cfg.dataDir}/workspace
         mkdir -p ${cfg.dataDir}/agents/main/sessions
       '';
-
+      path = [ pkgs.tailscale ];
       serviceConfig = {
         Type = "simple";
 	ExecStart = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/openclaw gateway --bind loopback --tailscale serve --port ${toString cfg.gatewayPort} --auth token --token $(cat ${cfg.authTokenFile})'";
