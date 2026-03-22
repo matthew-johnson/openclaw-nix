@@ -4,19 +4,29 @@ let
   cfg = config.services.openclaw;
   settingsFormat = pkgs.formats.json { };
 
-  # Generate gateway config
-  
+  # Generate gateway config — single source of truth
   gatewayConfig = {
     gateway = {
       mode = "local";
       trustedProxies = [ "127.0.0.1" ];
       port = cfg.gatewayPort;
     };
-    agents.defaults.model.primary = 
-      if cfg.modelProvider == "ollama" 
-      then "ollama/${cfg.ollamaModel}"
-      else cfg.modelProvider;
-  } // cfg.extraGatewayConfig;
+    tools = {
+      security = cfg.toolSecurity;
+      allowlist = cfg.toolAllowlist;
+    };
+    agents.defaults = {
+      model = {
+        primary = cfg.agents.model.primary;
+        fallbacks = cfg.agents.model.fallbacks;
+      };
+      heartbeat.model = cfg.agents.heartbeat.model;
+      subagents.model = cfg.agents.subagents.model;
+      timeoutSeconds = cfg.agents.timeoutSeconds;
+    };
+  }
+  // (lib.optionalAttrs (cfg.models != { }) { models = cfg.models; })
+  // cfg.extraGatewayConfig;
 
   gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" gatewayConfig;
 in
@@ -89,25 +99,70 @@ in
       description = ''
         Tool execution security mode.
         "deny" blocks all tool execution. "allowlist" permits only listed tools.
-        Note: "full" mode is intentionally excluded — it grants unrestricted access.
       '';
     };
 
     toolAllowlist = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [
-        "read"
-        "write"
-        "edit"
-        "web_search"
-        "web_fetch"
-        "message"
-        "tts"
-      ];
+      default = [ "read" "write" "edit" "web_search" "web_fetch" "message" "tts" ];
       description = ''
         Tools permitted when toolSecurity = "allowlist".
-        Defaults are safe read/write/search tools. exec, browser, nodes excluded by default.
         Add "exec" only if you understand the implications.
+      '';
+    };
+
+    # --- Agent model configuration ---
+    agents = {
+      model = {
+        primary = lib.mkOption {
+          type = lib.types.str;
+          default =
+            if cfg.modelProvider == "ollama"
+            then "ollama/${cfg.ollamaModel}"
+            else cfg.modelProvider;
+          defaultText = lib.literalExpression ''"ollama/model" or provider name'';
+          description = "Primary model identifier (e.g. anthropic/claude-opus-4-6).";
+        };
+        fallbacks = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Fallback model identifiers.";
+        };
+      };
+      heartbeat.model = lib.mkOption {
+        type = lib.types.str;
+        default = cfg.agents.model.primary;
+        defaultText = lib.literalExpression "same as agents.model.primary";
+        description = "Model used for heartbeat tasks.";
+      };
+      subagents.model = lib.mkOption {
+        type = lib.types.str;
+        default = cfg.agents.model.primary;
+        defaultText = lib.literalExpression "same as agents.model.primary";
+        description = "Model used for subagent tasks.";
+      };
+      timeoutSeconds = lib.mkOption {
+        type = lib.types.int;
+        default = 300;
+        description = "Agent timeout in seconds.";
+      };
+    };
+
+    # --- Custom model providers ---
+    models = lib.mkOption {
+      type = lib.types.attrs;
+      default = { };
+      description = "Custom model providers config (merged into openclaw.json as-is).";
+      example = lib.literalExpression ''
+        {
+          mode = "merge";
+          providers.llamacpp = {
+            baseUrl = "http://127.0.0.1:11434/v1";
+            apiKey = "none";
+            api = "openai-completions";
+            models = [{ id = "model.gguf"; name = "My Model"; contextWindow = 16384; maxTokens = 4096; }];
+          };
+        }
       '';
     };
 
@@ -130,7 +185,7 @@ in
       };
     };
 
-    # --- Model ---
+    # --- Model (legacy, used by gatewayConfig defaults) ---
     modelProvider = lib.mkOption {
       type = lib.types.str;
       default = "anthropic";
@@ -146,13 +201,26 @@ in
     ollamaBaseUrl = lib.mkOption {
       type = lib.types.str;
       default = "http://127.0.0.1:11434";
-      description = "Base URL for Ollama API. Only used when modelProvider = \"ollama\".";
+      description = "Base URL for Ollama API.";
     };
 
     ollamaModel = lib.mkOption {
       type = lib.types.str;
       default = "qwen3.5:27b";
-      description = "Ollama model name. Only used when modelProvider = \"ollama\".";
+      description = "Ollama model name.";
+    };
+
+    # --- Extra service config ---
+    extraPath = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      default = [ ];
+      description = "Extra packages added to the gateway service PATH.";
+    };
+
+    environmentFiles = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Paths to environment files loaded by the gateway service.";
     };
 
     # --- Updates ---
@@ -169,7 +237,7 @@ in
     extraGatewayConfig = lib.mkOption {
       type = lib.types.attrs;
       default = { };
-      description = "Extra attributes merged into gateway config.";
+      description = "Extra attributes deep-merged into gateway config.";
     };
 
     openFirewall = lib.mkOption {
@@ -184,7 +252,7 @@ in
     # ── Packages ──
     environment.systemPackages = [ cfg.package ];
 
-    # ── Auth token generation ──
+    # ── State directory ──
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0750 openclaw openclaw -"
     ];
@@ -203,32 +271,45 @@ in
           chmod 600 "${cfg.authTokenFile}"
           echo "Generated new gateway auth token at ${cfg.authTokenFile}"
         fi
-        # Write token env file for systemd EnvironmentFile
-        # Copy Nix-generated config into openclaw home dir on every activation
-        # so config changes deploy cleanly without manual setup steps
+
         mkdir -p ${cfg.dataDir}/.openclaw
-        cp ${gatewayConfigFile} ${cfg.dataDir}/.openclaw/openclaw.json
-        # Inject gateway token into config so CLI can connect
+        mkdir -p ${cfg.dataDir}/workspace
+        mkdir -p ${cfg.dataDir}/agents/main/sessions
+
+        CONFIG=${cfg.dataDir}/.openclaw/openclaw.json
+        NIX_CONFIG=${gatewayConfigFile}
+
+        # Deep-merge: Nix config wins on conflicts, runtime-only keys preserved
+        if [ -f "$CONFIG" ]; then
+          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$CONFIG" "$NIX_CONFIG" > "$CONFIG.tmp"
+          mv "$CONFIG.tmp" "$CONFIG"
+        else
+          cp "$NIX_CONFIG" "$CONFIG"
+        fi
+
+        # Inject auth token (not in Nix store for security)
         TOKEN=$(cat ${cfg.authTokenFile})
         ${pkgs.jq}/bin/jq --arg token "$TOKEN" \
           '.gateway.auth.token = $token | .gateway.remote.token = $token' \
-          ${cfg.dataDir}/.openclaw/openclaw.json > ${cfg.dataDir}/.openclaw/openclaw.json.tmp
-        mv ${cfg.dataDir}/.openclaw/openclaw.json.tmp ${cfg.dataDir}/.openclaw/openclaw.json
-        chmod 600 ${cfg.dataDir}/.openclaw/openclaw.json
-        mkdir -p ${cfg.dataDir}/workspace
-        mkdir -p ${cfg.dataDir}/agents/main/sessions
+          "$CONFIG" > "$CONFIG.tmp"
+        mv "$CONFIG.tmp" "$CONFIG"
+
+        chmod 600 "$CONFIG"
       '';
-      path = [ pkgs.tailscale ];
+
+      path = [ pkgs.tailscale ] ++ cfg.extraPath;
+
       serviceConfig = {
         Type = "simple";
-	ExecStart = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/openclaw gateway --bind loopback --tailscale serve --port ${toString cfg.gatewayPort} --auth token --token $(cat ${cfg.authTokenFile})'";
+        ExecStart = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/openclaw gateway --bind loopback --tailscale serve --port ${toString cfg.gatewayPort} --auth token --token $(cat ${cfg.authTokenFile})'";
         Restart = "on-failure";
         RestartSec = 5;
         WorkingDirectory = cfg.dataDir;
         StateDirectory = "openclaw";
+        EnvironmentFile = cfg.environmentFiles;
 
         # ── Hardening ──
-        DynamicUser = false;  # We use a dedicated user below
+        DynamicUser = false;
         User = "openclaw";
         Group = "openclaw";
         NoNewPrivileges = true;
@@ -311,7 +392,7 @@ in
 
     # ── Firewall ──
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [ 443 80 ];  # 80 for ACME redirect
+      allowedTCPPorts = [ 443 80 ];
     };
 
     # ── Fail2ban ──
