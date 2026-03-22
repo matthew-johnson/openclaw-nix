@@ -362,6 +362,7 @@ in
     # ── Dedicated user ──
     users.users.openclaw = {
       isSystemUser = true;
+      shell = pkgs.bash;
       group = "openclaw";
       home = cfg.dataDir;
       description = "OpenClaw service user";
