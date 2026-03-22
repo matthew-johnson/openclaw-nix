@@ -11,10 +11,6 @@ let
       trustedProxies = [ "127.0.0.1" ];
       port = cfg.gatewayPort;
     };
-    tools = {
-      security = cfg.toolSecurity;
-      allowlist = cfg.toolAllowlist;
-    };
     agents.defaults = {
       model = {
         primary = cfg.agents.model.primary;
