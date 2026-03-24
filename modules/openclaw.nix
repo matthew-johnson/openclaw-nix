@@ -52,7 +52,7 @@ in
           done
         '';
         meta.description = "OpenClaw agent infrastructure";
-      });
+      };
       defaultText = lib.literalExpression "pkgs.openclaw (auto-built from npm if not in nixpkgs)";
       description = "The OpenClaw package to use. Auto-fetched from npm if not provided.";
     };
