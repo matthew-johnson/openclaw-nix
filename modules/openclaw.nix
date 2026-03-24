@@ -32,7 +32,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.openclaw or (pkgs.stdenv.mkDerivation rec {
+      default = pkgs.stdenv.mkDerivation rec {
         pname = "openclaw";
         version = cfg.version;
         nativeBuildInputs = with pkgs; [ nodejs_22 cacert ];
@@ -59,8 +59,8 @@ in
 
     version = lib.mkOption {
       type = lib.types.str;
-      default = "2026.2.6-3";
-      description = "OpenClaw version (used for npm/docker install fallback).";
+      default = "2026.3.22";
+      description = "OpenClaw version (used for npm install).";
     };
 
     domain = lib.mkOption {
