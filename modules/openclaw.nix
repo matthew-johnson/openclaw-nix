@@ -32,7 +32,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.stdenv.mkDerivation rec {
+      default = pkgs.openclaw or (pkgs.stdenv.mkDerivation rec {
         pname = "openclaw";
         version = cfg.version;
         nativeBuildInputs = with pkgs; [ nodejs_22 cacert ];
@@ -52,7 +52,7 @@ in
           done
         '';
         meta.description = "OpenClaw agent infrastructure";
-      };
+      });
       defaultText = lib.literalExpression "pkgs.openclaw (auto-built from npm if not in nixpkgs)";
       description = "The OpenClaw package to use. Auto-fetched from npm if not provided.";
     };
