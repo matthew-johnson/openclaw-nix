@@ -50,7 +50,7 @@
             src = openclawSrc;
 
             # Generated with: prefetch-npm-deps package-lock.json
-            npmDepsHash = "sha256-65H9nODG8StdVv9IkkLyk/FJGiGhCvn5rsRrwyIgkNY=";
+            npmDepsHash = "sha256-Cei+9ZNNEqKBKYT4mLnSRgWV8nyHv4GSCKsI6uNr+3w=";
 
             nodejs = nodejs;
 
