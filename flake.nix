@@ -56,7 +56,7 @@
 
             # Skip native compilation of optional deps (node-llama-cpp, etc)
             # Sharp will use prebuilt binaries
-            npmFlags = [ "--legacy-peer-deps" ];
+            npmFlags = [ "--ignore-scripts" "--legacy-peer-deps" ];
             makeCacheWritable = true;
 
             nativeBuildInputs = with pkgs; [
@@ -72,22 +72,22 @@
             # The package is pre-built (dist/ included in npm tarball)
             # so we just need to install deps and create wrappers
             dontNpmBuild = true;
-	    postPatch = ''
-		 ${pkgs.jq}/bin/jq '
-                 .onlyBuiltDependencies = ((.onlyBuiltDependencies // []) - ["node-llama-cpp", "sharp"] + ["@discordjs/opus", "sodium-native"]) |
-                 .ignoredBuiltDependencies = ((.ignoredBuiltDependencies // []) - ["@discordjs/opus"] + ["node-llama-cpp", "sharp"])
-                 ' package.json > package.json.tmp && mv package.json.tmp package.json
+	    postPatch = '' 
+	      ${pkgs.jq}/bin/jq '
+	        .ignoredBuiltDependencies = ((.ignoredBuiltDependencies // []) - ["@discordjs/opus"])
+	      ' package.json > package.json.tmp && mv package.json.tmp package.json
 	    '';
 
-            postInstall = ''
-		  cd $out/lib/node_modules/openclaw
-		  ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
+	    postInstall = ''
+	      cd $out/lib/node_modules/openclaw
+	      npm rebuild @discordjs/opus sodium-native 2>/dev/null || true
+	      ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
 
-		  mkdir -p $out/bin
-		  rm -f $out/bin/openclaw 2>/dev/null || true
-		  makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-		    --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
-		    --set NODE_PATH "$out/lib/node_modules"
+	      mkdir -p $out/bin
+	      rm -f $out/bin/openclaw 2>/dev/null || true
+	      makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
+	        --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
+	        --set NODE_PATH "$out/lib/node_modules"
 	    '';
             meta = with pkgs.lib; { description = "OpenClaw — AI agent infrastructure platform"; homepage = 
               "https://github.com/openclaw/openclaw"; license = licenses.mit; platforms = platforms.linux; 
