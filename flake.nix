@@ -72,11 +72,10 @@
             # The package is pre-built (dist/ included in npm tarball)
             # so we just need to install deps and create wrappers
             dontNpmBuild = true;
-            postPatch = ''
+	    postPatch = ''
 		  ${pkgs.jq}/bin/jq '
-		    .onlyBuiltDependencies -= ["node-llama-cpp"] |
-		    .ignoredBuiltDependencies -= ["@discordjs/opus"] |
-		    .onlyBuiltDependencies += ["@discordjs/opus", "sodium-native"]
+		    .onlyBuiltDependencies = ((.onlyBuiltDependencies // []) - ["node-llama-cpp"] + ["@discordjs/opus", "sodium-native"]) |
+		    .ignoredBuiltDependencies = ((.ignoredBuiltDependencies // []) - ["@discordjs/opus"])
 		  ' package.json > package.json.tmp && mv package.json.tmp package.json
 	    '';
 
