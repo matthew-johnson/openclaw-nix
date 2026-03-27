@@ -56,7 +56,7 @@
 
             # Skip native compilation of optional deps (node-llama-cpp, etc)
             # Sharp will use prebuilt binaries
-            npmFlags = [ "--ignore-scripts" "--legacy-peer-deps" ];
+            npmFlags = [ "--legacy-peer-deps" ];
             makeCacheWritable = true;
 
             nativeBuildInputs = with pkgs; [
@@ -72,28 +72,26 @@
             # The package is pre-built (dist/ included in npm tarball)
             # so we just need to install deps and create wrappers
             dontNpmBuild = true;
+            postPatch = ''
+		  ${pkgs.jq}/bin/jq '
+		    .onlyBuiltDependencies -= ["node-llama-cpp"] |
+		    .ignoredBuiltDependencies -= ["@discordjs/opus"] |
+		    .onlyBuiltDependencies += ["@discordjs/opus", "sodium-native"]
+		  ' package.json > package.json.tmp && mv package.json.tmp package.json
+	    '';
 
             postInstall = ''
-		cd $out/lib/node_modules/openclaw
+		  cd $out/lib/node_modules/openclaw
+		  ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
 
-		# sharp prebuilt binary
-		${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
-
-		# Rebuild native voice dependencies (skipped by --ignore-scripts)
-		npm rebuild @discordjs/opus sodium-native 2>/dev/null || true
-
-		# Ensure the openclaw binary wrapper exists
-		mkdir -p $out/bin
-		rm -f $out/bin/openclaw 2>/dev/null || true
-		makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-		--add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
-		--set NODE_PATH "$out/lib/node_modules"
+		  mkdir -p $out/bin
+		  rm -f $out/bin/openclaw 2>/dev/null || true
+		  makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
+		    --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
+		    --set NODE_PATH "$out/lib/node_modules"
 	    '';
-            meta = with pkgs.lib; {
-              description = "OpenClaw — AI agent infrastructure platform";
-              homepage = "https://github.com/openclaw/openclaw";
-              license = licenses.mit;
-              platforms = platforms.linux;
+            meta = with pkgs.lib; { description = "OpenClaw — AI agent infrastructure platform"; homepage = 
+              "https://github.com/openclaw/openclaw"; license = licenses.mit; platforms = platforms.linux; 
               mainProgram = "openclaw";
             };
           };
