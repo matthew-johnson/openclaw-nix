@@ -74,20 +74,21 @@
             dontNpmBuild = true;
 
             postInstall = ''
-              # sharp needs its platform-specific prebuilt binary
-              # Run install/check to download it (network allowed in this phase
-              # only if using --impure; otherwise sharp falls back gracefully)
-              cd $out/lib/node_modules/openclaw
-              ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
+		cd $out/lib/node_modules/openclaw
 
-              # Ensure the openclaw binary wrapper exists
-              mkdir -p $out/bin
-              rm -f $out/bin/openclaw 2>/dev/null || true
-              makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-                --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
-                --set NODE_PATH "$out/lib/node_modules"
-            '';
+		# sharp prebuilt binary
+		${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
 
+		# Rebuild native voice dependencies (skipped by --ignore-scripts)
+		npm rebuild @discordjs/opus sodium-native 2>/dev/null || true
+
+		# Ensure the openclaw binary wrapper exists
+		mkdir -p $out/bin
+		rm -f $out/bin/openclaw 2>/dev/null || true
+		makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
+		--add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
+		--set NODE_PATH "$out/lib/node_modules"
+	    '';
             meta = with pkgs.lib; {
               description = "OpenClaw — AI agent infrastructure platform";
               homepage = "https://github.com/openclaw/openclaw";
