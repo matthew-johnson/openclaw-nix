@@ -87,7 +87,7 @@
 	      rm -f $out/bin/openclaw 2>/dev/null || true
 	      makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
 	        --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
-	        --set NODE_PATH "$out/lib/node_modules"
+	        --prefix NODE_PATH "$out/lib/node_modules"
 	    '';
             meta = with pkgs.lib; { description = "OpenClaw — AI agent infrastructure platform"; homepage = 
               "https://github.com/openclaw/openclaw"; license = licenses.mit; platforms = platforms.linux; 
