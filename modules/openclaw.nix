@@ -21,7 +21,7 @@ let
       timeoutSeconds = cfg.agents.timeoutSeconds;
     };
   }
-  // (lib.optionalAttrs (cfg.models != { }) { models = cfg.models; })
+  // (lib.optionalAttrs (cfg.models != { }) { models = cfg.models; });
   
   # Deep-merge extraGatewayConfig so nested keys (e.g. gateway.auth)
   # don't clobber module-defined siblings (e.g. gateway.mode)
