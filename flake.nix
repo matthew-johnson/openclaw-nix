@@ -82,6 +82,15 @@
 	      cd $out/lib/node_modules/openclaw
 	      npm rebuild @discordjs/opus sodium-native 2>/dev/null || true
 	      ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
+	      
+	      # Fix DAVE receive bug: replace carbon's bundled @discordjs/voice 0.19.0 with 0.19.2
+              CARBON_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape/carbon/node_modules/@discordjs/voice"
+              TOP_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@discordjs/voice"
+              if [ -d "$CARBON_VOICE" ] && [ -d "$TOP_VOICE" ]; then
+                rm -rf "$CARBON_VOICE"
+                cp -r "$TOP_VOICE" "$CARBON_VOICE"
+                echo "Patched @buape/carbon @discordjs/voice 0.19.0 -> 0.19.2"
+              fi
 
 	      mkdir -p $out/bin
 	      rm -f $out/bin/openclaw 2>/dev/null || true
