@@ -275,13 +275,8 @@ in
         CONFIG=${cfg.dataDir}/.openclaw/openclaw.json
         NIX_CONFIG=${gatewayConfigFile}
 
-        # Deep-merge: Nix config wins on conflicts, runtime-only keys preserved
-        if [ -f "$CONFIG" ]; then
-          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$CONFIG" "$NIX_CONFIG" > "$CONFIG.tmp"
-          mv "$CONFIG.tmp" "$CONFIG"
-        else
-          cp "$NIX_CONFIG" "$CONFIG"
-        fi
+        # Overwrite: Nix config is the single source of truth
+        cp "$NIX_CONFIG" "$CONFIG"
 
         # Inject auth token (not in Nix store for security)
         TOKEN=$(cat ${cfg.authTokenFile})
