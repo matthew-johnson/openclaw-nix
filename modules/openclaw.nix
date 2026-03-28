@@ -29,8 +29,7 @@ let
 
   gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" mergedGatewayConfig;
 
-  gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" gatewayConfig;
-in
+  in
 {
   options.services.openclaw = {
     enable = lib.mkEnableOption "OpenClaw hardened agent infrastructure";
