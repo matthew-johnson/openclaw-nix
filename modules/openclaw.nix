@@ -5,7 +5,7 @@ let
   settingsFormat = pkgs.formats.json { };
 
   # Generate gateway config — single source of truth
-  gatewayConfig = {
+  baseGatewayConfig = {
     gateway = {
       mode = "local";
       trustedProxies = [ "127.0.0.1" ];
@@ -22,7 +22,12 @@ let
     };
   }
   // (lib.optionalAttrs (cfg.models != { }) { models = cfg.models; })
-  // cfg.extraGatewayConfig;
+  
+  # Deep-merge extraGatewayConfig so nested keys (e.g. gateway.auth)
+  # don't clobber module-defined siblings (e.g. gateway.mode)
+  mergedGatewayConfig = lib.recursiveUpdate baseGatewayConfig cfg.extraGatewayConfig;
+
+  gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" mergedGatewayConfig;
 
   gatewayConfigFile = settingsFormat.generate "openclaw-gateway.json" gatewayConfig;
 in
