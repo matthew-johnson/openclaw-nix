@@ -26,7 +26,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_22;
 
-          version = "2026.3.24";
+          version = "2026.4.2";
 
           # Combine tarball + lockfile into a proper source
           openclawSrc = pkgs.stdenv.mkDerivation {
@@ -91,6 +91,9 @@
                 cp -r "$TOP_VOICE" "$CARBON_VOICE"
                 echo "Patched @buape/carbon @discordjs/voice 0.19.0 -> 0.19.2"
               fi
+              
+              # Fix AJV JSON Schema 2020-12 support for MCP tool validation
+              sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
 
 	      mkdir -p $out/bin
 	      rm -f $out/bin/openclaw 2>/dev/null || true
