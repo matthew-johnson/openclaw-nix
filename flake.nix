@@ -26,14 +26,14 @@
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_22;
 
-          version = "2026.4.2";
+          version = "2026.3.24";
 
           # Combine tarball + lockfile into a proper source
           openclawSrc = pkgs.stdenv.mkDerivation {
             name = "openclaw-src-${version}";
             src = pkgs.fetchurl {
               url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-              hash = "sha256-tbXIalz/wOlNcM/3dceVENkF/vDMqrJk/Cse2+1en3A=";
+              hash = "sha256-5AeWNOBA8PCY6xljNgl1ZFqJVMhxYcUx8MHVKi9fVCk=";
             };
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
@@ -94,8 +94,8 @@
               
               # Fix AJV JSON Schema 2020-12 support for MCP tool validation
               sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
-
-	      mkdir -p $out/bin
+	      
+              mkdir -p $out/bin
 	      rm -f $out/bin/openclaw 2>/dev/null || true
 	      makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
 	        --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
