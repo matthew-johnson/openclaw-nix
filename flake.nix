@@ -91,6 +91,16 @@
                 cp -r "$TOP_VOICE" "$CARBON_VOICE"
                 echo "Patched @buape/carbon @discordjs/voice 0.19.0 -> 0.19.2"
               fi
+             
+              # Add after the DAVE voice patch block in postInstall:
+              # Fix carbon module resolution — UI bundle expects it at top-level node_modules
+              CARBON_EXT="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape"
+              CARBON_TOP="$out/lib/node_modules/openclaw/node_modules/@buape"
+              if [ -d "$CARBON_EXT" ] && [ ! -d "$CARBON_TOP" ]; then
+                mkdir -p "$out/lib/node_modules/openclaw/node_modules"
+                cp -r "$CARBON_EXT" "$CARBON_TOP"
+                echo "Linked @buape/carbon to top-level node_modules"
+              fi
               
               # Fix AJV JSON Schema 2020-12 support for MCP tool validation
               sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
