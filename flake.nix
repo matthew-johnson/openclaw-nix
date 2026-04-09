@@ -26,14 +26,14 @@
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_22;
 
-          version = "2026.3.24";
+          version = "2026.4.8";
 
           # Combine tarball + lockfile into a proper source
           openclawSrc = pkgs.stdenv.mkDerivation {
             name = "openclaw-src-${version}";
             src = pkgs.fetchurl {
               url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-              hash = "sha256-5AeWNOBA8PCY6xljNgl1ZFqJVMhxYcUx8MHVKi9fVCk=";
+              hash = "sha256-CkWLSG1wYothCt9opnKrUFbocCBpdict/doCwyG0kFs=";
             };
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
@@ -50,7 +50,7 @@
             src = openclawSrc;
 
             # Generated with: prefetch-npm-deps package-lock.json
-            npmDepsHash = "sha256-Cei+9ZNNEqKBKYT4mLnSRgWV8nyHv4GSCKsI6uNr+3w=";
+            npmDepsHash = "";
 
             nodejs = nodejs;
 
