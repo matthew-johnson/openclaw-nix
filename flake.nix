@@ -33,7 +33,7 @@
             name = "openclaw-src-${version}";
             src = pkgs.fetchurl {
               url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-              hash = "sha256-CkWLSG1wYothCt9opnKrUFbocCBpdict/doCwyG0kFs=";
+              hash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
             };
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
@@ -50,7 +50,7 @@
             src = openclawSrc;
 
             # Generated with: prefetch-npm-deps package-lock.json
-            npmDepsHash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
+            npmDepsHash = "";
 
             nodejs = nodejs;
 
