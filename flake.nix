@@ -58,7 +58,7 @@
 
             buildPhase = ''
               runHook preBuild
-              pnpm install --frozen-lockfile --offline
+              pnpm install --frozen-lockfile --offline --ignore-scripts
               pnpm build
               runHook postBuild
             '';
