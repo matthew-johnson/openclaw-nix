@@ -11,25 +11,19 @@
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
-      # NixOS module — import this in your configuration.nix
       nixosModules.default = import ./modules/openclaw.nix;
       nixosModules.openclaw = import ./modules/openclaw.nix;
-
-      # Overlay that provides pkgs.openclaw
       overlays.default = final: prev: {
         openclaw = self.packages.${final.system}.openclaw;
       };
 
-      # Standalone packages
       packages = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_22;
           pnpm = pkgs.pnpm_10;
-
           version = "2026.4.8";
 
-          # Combine tarball + pnpm-lock.yaml into source
           openclawSrc = pkgs.stdenv.mkDerivation {
             name = "openclaw-src-${version}";
             src = pkgs.fetchurl {
@@ -46,36 +40,37 @@
           };
         in
         {
-          openclaw = pkgs.stdenv.mkDerivation {
+          openclaw = pkgs.stdenv.mkDerivation (finalAttrs: {
             pname = "openclaw";
             inherit version;
             src = openclawSrc;
-            
-            # Set environment variables for all phases
-            HOME = "/tmp";
-            PNPM_HOME = "/tmp/pnpm-store";
-            XDG_CACHE_HOME = "/tmp/cache";
-            XDG_DATA_HOME = "/tmp/data";
-            XDG_CONFIG_HOME = "/tmp/config";
 
-            nativeBuildInputs = [ pnpm nodejs pkgs.jq pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
+            nativeBuildInputs = [ 
+              nodejs 
+              pkgs.pnpmConfigHook
+              pnpm 
+              pkgs.jq 
+              pkgs.makeWrapper 
+              pkgs.python3 
+              pkgs.pkg-config 
+            ];
             buildInputs = with pkgs; [ vips ];
+
+            pnpmDeps = pkgs.fetchPnpmDeps {
+              inherit (finalAttrs) pname version src;
+              pnpm = pnpm;
+              fetcherVersion = 3;
+              hash = "";  # Set to lib.fakeHash on first build, then replace with actual hash
+            };
 
             buildPhase = ''
               runHook preBuild
-              
-              mkdir -p $HOME $PNPM_HOME $XDG_CACHE_HOME $XDG_DATA_HOME $XDG_CONFIG_HOME
-              export PATH="$PNPM_HOME:$PATH"
-              
-              pnpm config set store-dir $PNPM_HOME --global
-              pnpm config set node-linker hoisted --global
-              pnpm install --frozen-lockfile --ignore-scripts
+              pnpm install --frozen-lockfile --offline --ignore-scripts
             '';
 
             installPhase = ''
               mkdir -p $out/lib/node_modules/openclaw
               cp -r . $out/lib/node_modules/openclaw/
-
               cd $out/lib/node_modules/openclaw
 
               # Rebuild native modules
@@ -114,7 +109,7 @@
               platforms = platforms.linux;
               mainProgram = "openclaw";
             };
-          };
+          });
 
           quick-setup = pkgs.writeShellScriptBin "openclaw-setup" (builtins.readFile ./scripts/quick-setup.sh);
 
