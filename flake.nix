@@ -44,7 +44,8 @@
               pkgs.jq 
               pkgs.makeWrapper 
               pkgs.python3 
-              pkgs.pkg-config 
+              pkgs.pkg-config
+              pkgs.esbuild 
             ];
             buildInputs = with pkgs; [ vips ];
 
@@ -57,7 +58,7 @@
 
             buildPhase = ''
               runHook preBuild
-              pnpm install --frozen-lockfile --offline --ignore-scripts
+              pnpm install --frozen-lockfile --offline
               pnpm build
               runHook postBuild
             '';
@@ -92,7 +93,7 @@
 
               mkdir -p $out/bin
               makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-                --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
+                --add-flags "$out/lib/node_modules/openclaw/dist/entry.mjs" \
                 --prefix NODE_PATH "$out/lib/node_modules"
             '';
 
