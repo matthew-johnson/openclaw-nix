@@ -52,7 +52,7 @@
               inherit (finalAttrs) pname version src;
               pnpm = pnpm;
               fetcherVersion = 3;
-              hash = "";  # Set to lib.fakeHash on first build, then replace with actual hash
+              hash = "sha256-Y9FvI6Vhyi+kBLVio7/Qz77NWBViYMD0KheV7cXyeXs=";  # Set to lib.fakeHash on first build, then replace with actual hash
             };
 
             buildPhase = ''
