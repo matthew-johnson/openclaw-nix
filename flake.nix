@@ -55,12 +55,12 @@
             buildInputs = with pkgs; [ vips ];
 
             preBuild = ''
-              export HOME=$TMP/home
+              export HOME=$NIX_BUILD_TOP/home
               mkdir -p $HOME
-              export PNPM_HOME=$TMP/pnpm-store
+              export PNPM_HOME=$NIX_BUILD_TOP/pnpm-store
               mkdir -p $PNPM_HOME
-              pnpm config set store-dir $PNPM_HOME
-              pnpm config set node-linker=hoisted
+              pnpm config set store-dir $PNPM_HOME --global
+              pnpm config set node-linker=hoisted --global
             '';
 
             buildPhase = ''
