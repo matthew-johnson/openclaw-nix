@@ -46,7 +46,7 @@
           };
         in
         {
-          openclawPkg = pkgs.stdenv.mkDerivation {
+          openclaw = pkgs.stdenv.mkDerivation {
             pname = "openclaw";
             inherit version;
             src = openclawSrc;
