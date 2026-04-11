@@ -29,7 +29,7 @@
 
           version = "2026.4.8";
 
-          # Combine tarball + lockfile into a proper source
+          # Combine tarball + pnpm-lock.yaml into source
           openclawSrc = pkgs.stdenv.mkDerivation {
             name = "openclaw-src-${version}";
             src = pkgs.fetchurl {
@@ -39,9 +39,7 @@
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
               cp -r . $out
-              # Use pnpm-lock.yaml instead of package-lock.json
               cp ${./pnpm-lock.yaml} $out/pnpm-lock.yaml
-              # Remove package-lock.json to avoid conflicts
               rm -f $out/package-lock.json
             '';
             sourceRoot = "package";
@@ -53,18 +51,12 @@
 
             src = openclawSrc;
 
-            nativeBuildInputs = [ pnpm nodejs pkgs.jq pkgs.makeWrapper ];
-            buildInputs = with pkgs; [ vips python3 pkg-config ];
+            nativeBuildInputs = [ pnpm nodejs pkgs.jq pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
+            buildInputs = with pkgs; [ vips ];
 
-            # Skip native compilation of optional deps
-            pnpmFlags = [
-              "--frozen-lockfile"
-              "--ignore-scripts"
-              "--no-optional"
-            ];
-
-            # Configure pnpm to use hoisted node_modules (flatter, works better with Nix)
             preBuild = ''
+              export HOME=$TMP/home
+              mkdir -p $HOME
               export PNPM_HOME=$TMP/pnpm-store
               mkdir -p $PNPM_HOME
               pnpm config set store-dir $PNPM_HOME
@@ -72,7 +64,7 @@
             '';
 
             buildPhase = ''
-              pnpm install $pnpmFlags
+              pnpm install --frozen-lockfile --ignore-scripts
             '';
 
             installPhase = ''
@@ -85,13 +77,12 @@
               pnpm rebuild @discordjs/opus sodium-native 2>/dev/null || true
               ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
 
-              # Fix DAVE receive bug: replace carbon's bundled @discordjs/voice 0.19.0 with 0.19.2
+              # Fix DAVE receive bug
               CARBON_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape/carbon/node_modules/@discordjs/voice"
               TOP_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@discordjs/voice"
               if [ -d "$CARBON_VOICE" ] && [ -d "$TOP_VOICE" ]; then
                 rm -rf "$CARBON_VOICE"
                 cp -r "$TOP_VOICE" "$CARBON_VOICE"
-                echo "Patched @buape/carbon @discordjs/voice 0.19.0 -> 0.19.2"
               fi
 
               # Fix carbon module resolution
@@ -100,10 +91,9 @@
               if [ -d "$CARBON_EXT" ] && [ ! -d "$CARBON_TOP" ]; then
                 mkdir -p "$out/lib/node_modules/openclaw/node_modules"
                 cp -r "$CARBON_EXT" "$CARBON_TOP"
-                echo "Linked @buape/carbon to top-level node_modules"
               fi
 
-              # Fix AJV JSON Schema 2020-12 support for MCP tool validation
+              # Fix AJV JSON Schema 2020-12 support
               sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
 
               mkdir -p $out/bin
@@ -128,37 +118,7 @@
 
           default = pkgs.writeShellScriptBin "openclaw-nix" ''
             echo ""
-            echo "  ╔══════════════════════════════════════════════════╗"
-            echo "  ║  OpenClaw NixOS — Hardened Agent Infrastructure  ║"
-            echo "  ║  One flake. Fully hardened. Your agents, secured ║"
-            echo "  ╚══════════════════════════════════════════════════╝"
-            echo ""
-            echo "  Usage:"
-            echo ""
-            echo "    1. Add to your flake inputs:"
-            echo "       openclaw.url = \"github:Scout-DJ/openclaw-nix\";"
-            echo ""
-            echo "    2. Import the module:"
-            echo "       imports = [ openclaw.nixosModules.default ];"
-            echo ""
-            echo "    3. Enable it:"
-            echo "       services.openclaw.enable = true;"
-            echo "       services.openclaw.domain = \"agents.example.com\";"
-            echo ""
-            echo "    Quick setup (interactive):"
-            echo "       nix run github:Scout-DJ/openclaw-nix#quick-setup"
-            echo ""
-            echo "    What you get:"
-            echo "      ✓ OpenClaw gateway as hardened systemd service"
-            echo "      ✓ Caddy reverse proxy with automatic TLS"
-            echo "      ✓ Gateway auth enabled (auto-generated token)"
-            echo "      ✓ Localhost-only binding (no exposed panels)"
-            echo "      ✓ Tool allowlists (no 'full' mode)"
-            echo "      ✓ Firewall: only 443 + SSH"
-            echo "      ✓ Fail2ban for SSH"
-            echo "      ✓ DynamicUser, PrivateTmp, NoNewPrivileges"
-            echo ""
-            echo "  Docs: https://github.com/Scout-DJ/openclaw-nix"
+            echo "  OpenClaw NixOS — pnpm build"
             echo ""
           '';
         });
