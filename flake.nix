@@ -102,6 +102,8 @@
                 echo "Linked @buape/carbon to top-level node_modules"
               fi
               
+              # Remove feishu extension (missing @larksuiteoapi/node-sdk in Nix build)
+              rm -rf $out/lib/node_modules/openclaw/dist/extensions/feishu
               # Fix AJV JSON Schema 2020-12 support for MCP tool validation
               sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
 	      
