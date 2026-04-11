@@ -65,6 +65,7 @@
               runHook preBuild
               
               mkdir -p $HOME $PNPM_HOME $XDG_CACHE_HOME $XDG_DATA_HOME $XDG_CONFIG_HOME
+              export PATH="$PNPM_HOME:$PATH"
               
               pnpm config set store-dir $PNPM_HOME --global
               pnpm config set node-linker hoisted --global
