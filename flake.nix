@@ -23,27 +23,19 @@
           nodejs = pkgs.nodejs_22;
           pnpm = pkgs.pnpm_10;
           version = "2026.4.8";
-
-          openclawSrc = pkgs.stdenv.mkDerivation {
-            name = "openclaw-src-${version}";
-            src = pkgs.fetchurl {
-              url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-              hash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
-            };
-            phases = [ "unpackPhase" "installPhase" ];
-            installPhase = ''
-              cp -r . $out
-              cp ${./pnpm-lock.yaml} $out/pnpm-lock.yaml
-              rm -f $out/package-lock.json
-            '';
-            sourceRoot = "package";
-          };
         in
         {
           openclaw = pkgs.stdenv.mkDerivation (finalAttrs: {
             pname = "openclaw";
             inherit version;
-            src = openclawSrc;
+
+            # Use GitHub source so package.json and pnpm-lock.yaml match
+            src = pkgs.fetchFromGitHub {
+              owner = "openclaw";
+              repo = "openclaw";
+              tag = "v${version}";
+              hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            };
 
             nativeBuildInputs = [ 
               nodejs 
