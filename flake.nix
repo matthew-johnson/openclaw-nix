@@ -44,26 +44,30 @@
             '';
             sourceRoot = "package";
           };
-
+        in
+        {
           openclawPkg = pkgs.stdenv.mkDerivation {
             pname = "openclaw";
             inherit version;
-
             src = openclawSrc;
+            
+            # Set environment variables for all phases
+            HOME = "/tmp";
+            PNPM_HOME = "/tmp/pnpm-store";
+            XDG_CACHE_HOME = "/tmp/cache";
+            XDG_DATA_HOME = "/tmp/data";
+            XDG_CONFIG_HOME = "/tmp/config";
 
             nativeBuildInputs = [ pnpm nodejs pkgs.jq pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
             buildInputs = with pkgs; [ vips ];
 
-            preBuild = ''
-              export HOME=$NIX_BUILD_TOP/home
-              mkdir -p $HOME
-              export PNPM_HOME=$NIX_BUILD_TOP/pnpm-store
-              mkdir -p $PNPM_HOME
-              pnpm config set store-dir $PNPM_HOME --global
-              pnpm config set node-linker=hoisted --global
-            '';
-
             buildPhase = ''
+              runHook preBuild
+              
+              mkdir -p $HOME $PNPM_HOME $XDG_CACHE_HOME $XDG_DATA_HOME $XDG_CONFIG_HOME
+              
+              pnpm config set store-dir $PNPM_HOME --global
+              pnpm config set node-linker hoisted --global
               pnpm install --frozen-lockfile --ignore-scripts
             '';
 
@@ -110,9 +114,6 @@
               mainProgram = "openclaw";
             };
           };
-        in
-        {
-          openclaw = openclawPkg;
 
           quick-setup = pkgs.writeShellScriptBin "openclaw-setup" (builtins.readFile ./scripts/quick-setup.sh);
 
