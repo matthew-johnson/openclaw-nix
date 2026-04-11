@@ -25,6 +25,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_22;
+          pnpm = pkgs.pnpm_10;
 
           version = "2026.4.8";
 
@@ -38,52 +39,53 @@
             phases = [ "unpackPhase" "installPhase" ];
             installPhase = ''
               cp -r . $out
-              cp ${./package-lock.json} $out/package-lock.json
+              # Use pnpm-lock.yaml instead of package-lock.json
+              cp ${./pnpm-lock.yaml} $out/pnpm-lock.yaml
+              # Remove package-lock.json to avoid conflicts
+              rm -f $out/package-lock.json
             '';
             sourceRoot = "package";
           };
 
-          openclawPkg = pkgs.buildNpmPackage {
+          openclawPkg = pkgs.stdenv.mkDerivation {
             pname = "openclaw";
             inherit version;
 
             src = openclawSrc;
 
-            # Generated with: prefetch-npm-deps package-lock.json
-            npmDepsHash = "sha256-wdea3+sbEf7A6gES3K4+QSovq7j80b8RLssFPJ948W0=";
+            nativeBuildInputs = [ pnpm nodejs pkgs.jq pkgs.makeWrapper ];
+            buildInputs = with pkgs; [ vips python3 pkg-config ];
 
-            nodejs = nodejs;
-
-            # Skip native compilation of optional deps (node-llama-cpp, etc)
-            # Sharp will use prebuilt binaries
-            npmFlags = [ "--ignore-scripts" "--legacy-peer-deps" ];
-            makeCacheWritable = true;
-
-            nativeBuildInputs = with pkgs; [
-              python3
-              pkg-config
-              makeWrapper
+            # Skip native compilation of optional deps
+            pnpmFlags = [
+              "--frozen-lockfile"
+              "--ignore-scripts"
+              "--no-optional"
             ];
 
-            buildInputs = with pkgs; [
-              vips  # for sharp prebuilt binaries
-            ];
+            # Configure pnpm to use hoisted node_modules (flatter, works better with Nix)
+            preBuild = ''
+              export PNPM_HOME=$TMP/pnpm-store
+              mkdir -p $PNPM_HOME
+              pnpm config set store-dir $PNPM_HOME
+              pnpm config set node-linker=hoisted
+            '';
 
-            # The package is pre-built (dist/ included in npm tarball)
-            # so we just need to install deps and create wrappers
-            dontNpmBuild = true;
-	    postPatch = '' 
-	      ${pkgs.jq}/bin/jq '
-	        .ignoredBuiltDependencies = ((.ignoredBuiltDependencies // []) - ["@discordjs/opus"])
-	      ' package.json > package.json.tmp && mv package.json.tmp package.json
-	    '';
+            buildPhase = ''
+              pnpm install $pnpmFlags
+            '';
 
-	    postInstall = ''
-	      cd $out/lib/node_modules/openclaw
-	      npm rebuild @discordjs/opus sodium-native 2>/dev/null || true
-	      ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
-	      
-	      # Fix DAVE receive bug: replace carbon's bundled @discordjs/voice 0.19.0 with 0.19.2
+            installPhase = ''
+              mkdir -p $out/lib/node_modules/openclaw
+              cp -r . $out/lib/node_modules/openclaw/
+
+              cd $out/lib/node_modules/openclaw
+
+              # Rebuild native modules
+              pnpm rebuild @discordjs/opus sodium-native 2>/dev/null || true
+              ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
+
+              # Fix DAVE receive bug: replace carbon's bundled @discordjs/voice 0.19.0 with 0.19.2
               CARBON_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape/carbon/node_modules/@discordjs/voice"
               TOP_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@discordjs/voice"
               if [ -d "$CARBON_VOICE" ] && [ -d "$TOP_VOICE" ]; then
@@ -91,9 +93,8 @@
                 cp -r "$TOP_VOICE" "$CARBON_VOICE"
                 echo "Patched @buape/carbon @discordjs/voice 0.19.0 -> 0.19.2"
               fi
-             
-              # Add after the DAVE voice patch block in postInstall:
-              # Fix carbon module resolution — UI bundle expects it at top-level node_modules
+
+              # Fix carbon module resolution
               CARBON_EXT="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape"
               CARBON_TOP="$out/lib/node_modules/openclaw/node_modules/@buape"
               if [ -d "$CARBON_EXT" ] && [ ! -d "$CARBON_TOP" ]; then
@@ -101,20 +102,21 @@
                 cp -r "$CARBON_EXT" "$CARBON_TOP"
                 echo "Linked @buape/carbon to top-level node_modules"
               fi
-              
-              # Remove feishu extension (missing @larksuiteoapi/node-sdk in Nix build)
-              rm -rf $out/lib/node_modules/openclaw/dist/extensions/feishu
+
               # Fix AJV JSON Schema 2020-12 support for MCP tool validation
               sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
-	      
+
               mkdir -p $out/bin
-	      rm -f $out/bin/openclaw 2>/dev/null || true
-	      makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-	        --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
-	        --prefix NODE_PATH "$out/lib/node_modules"
-	    '';
-            meta = with pkgs.lib; { description = "OpenClaw — AI agent infrastructure platform"; homepage = 
-              "https://github.com/openclaw/openclaw"; license = licenses.mit; platforms = platforms.linux; 
+              makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
+                --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
+                --prefix NODE_PATH "$out/lib/node_modules"
+            '';
+
+            meta = with pkgs.lib; {
+              description = "OpenClaw — AI agent infrastructure platform";
+              homepage = "https://github.com/openclaw/openclaw";
+              license = licenses.mit;
+              platforms = platforms.linux;
               mainProgram = "openclaw";
             };
           };
