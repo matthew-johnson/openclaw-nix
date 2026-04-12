@@ -33,6 +33,11 @@
               hash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
             };
 
+            # Copy vendored package-lock.json
+            postPatch = ''
+              cp ${./package-lock.json} package-lock.json
+            '';
+
             npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
             nativeBuildInputs = [ nodejs pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
