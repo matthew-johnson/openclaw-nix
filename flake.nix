@@ -51,6 +51,9 @@
             postInstall = ''
               cd $out/lib/node_modules/openclaw
               
+              # Make writable so we can modify node_modules
+              chmod -R u+w
+ 
               for ext in slack telegram feishu discord bluebubbles matrix mattermost msteams; do
                 extNodeModules="dist/extensions/$ext/node_modules"
                 if [ -d "$extNodeModules" ]; then
