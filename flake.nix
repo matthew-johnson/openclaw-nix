@@ -30,7 +30,7 @@
             
             src = pkgs.fetchurl {
               url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
-              hash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
+              hash = "";
             };
 
             # Copy vendored package-lock.json
