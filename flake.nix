@@ -44,6 +44,7 @@
             buildInputs = with pkgs; [ vips ];
 
             # Don't run build scripts - tarball is pre-built
+            npmInstallFlags = [ "--ignore-scripts" ];
             npmPackFlags = [ "--ignore-scripts" ];
             dontNpmBuild = true;
 
