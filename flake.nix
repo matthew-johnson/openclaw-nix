@@ -44,8 +44,7 @@
             buildInputs = with pkgs; [ vips ];
 
             # Don't run build scripts - tarball is pre-built
-            npmInstallFlags = [ "--ignore-scripts" ];
-            npmPackFlags = [ "--ignore-scripts" ];
+            npmFlags = [ "--ignore-scripts" ];
             dontNpmBuild = true;
 
             # Fix npm hoisting: symlink channel extension deps to top-level
