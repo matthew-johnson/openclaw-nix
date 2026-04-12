@@ -38,7 +38,7 @@
               cp ${./package-lock.json} package-lock.json
             '';
 
-            npmDepsHash = "";
+            npmDepsHash = "sha256-0xFrsYvQvdJiKaYHM9zXT7VnlPtZ5KTMKqHIbQKHX48=";
 
             nativeBuildInputs = [ nodejs pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
             buildInputs = with pkgs; [ vips ];
