@@ -74,7 +74,7 @@
 
               mkdir -p $out/bin
               makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
-                --add-flags "$out/lib/node_modules/openclaw/dist/entry.mjs" \
+                --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
                 --prefix NODE_PATH "$out/lib/node_modules"
             '';
 
