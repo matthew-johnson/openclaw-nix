@@ -25,42 +25,34 @@
           version = "2026.4.8";
         in
         {
-          openclaw = pkgs.stdenv.mkDerivation (finalAttrs: {
+          # Use npm tarball (pre-built) with pnpm for correct hoisting
+          openclaw = pkgs.stdenv.mkDerivation {
             pname = "openclaw";
             inherit version;
-
-            # Use GitHub source so package.json and pnpm-lock.yaml match
-            src = pkgs.fetchFromGitHub {
-              owner = "openclaw";
-              repo = "openclaw";
-              tag = "v${version}";
-              hash = "sha256-Y9FvI6Vhyi+kBLVio7/Qz77NWBViYMD0KheV7cXyeXs=";
+            
+            src = pkgs.fetchurl {
+              url = "https://registry.npmjs.org/openclaw/-/openclaw-${version}.tgz";
+              hash = "sha256-skK9EgDWOosTMTZQOvFZ89l9njkCNFUPdoFZsKt4MBE=";
             };
 
-            nativeBuildInputs = [ 
-              nodejs 
-              pkgs.pnpmConfigHook
-              pnpm 
-              pkgs.jq 
-              pkgs.makeWrapper 
-              pkgs.python3 
-              pkgs.pkg-config
-              pkgs.esbuild 
-            ];
+            sourceRoot = "package";
+
+            # Env vars for pnpm in sandbox
+            HOME = "/tmp";
+            PNPM_HOME = "/tmp/pnpm-store";
+            XDG_CACHE_HOME = "/tmp/cache";
+            
+            nativeBuildInputs = [ nodejs pnpm pkgs.makeWrapper pkgs.python3 pkgs.pkg-config ];
             buildInputs = with pkgs; [ vips ];
-
-            pnpmDeps = pkgs.fetchPnpmDeps {
-              inherit (finalAttrs) pname version src;
-              pnpm = pnpm;
-              fetcherVersion = 3;
-              hash = "sha256-GrGh7rACPl+eROOOBYzneWJxl+xsh39/m2+dNI01oaQ=";  # Set to lib.fakeHash on first build, then replace with actual hash
-            };
 
             buildPhase = ''
               runHook preBuild
-              pnpm install --frozen-lockfile --offline --ignore-scripts
-              pnpm build
-              runHook postBuild
+              mkdir -p $HOME $PNPM_HOME $XDG_CACHE_HOME
+              export PATH="$PNPM_HOME:$PATH"
+              
+              # Generate new lockfile (ignore mismatch) and install with hoisting
+              pnpm config set node-linker hoisted --global
+              pnpm install --no-frozen-lockfile --ignore-scripts
             '';
 
             installPhase = ''
@@ -70,26 +62,6 @@
 
               # Rebuild native modules
               pnpm rebuild @discordjs/opus sodium-native 2>/dev/null || true
-              ${nodejs}/bin/node node_modules/sharp/install/check.js 2>/dev/null || true
-
-              # Fix DAVE receive bug
-              CARBON_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape/carbon/node_modules/@discordjs/voice"
-              TOP_VOICE="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@discordjs/voice"
-              if [ -d "$CARBON_VOICE" ] && [ -d "$TOP_VOICE" ]; then
-                rm -rf "$CARBON_VOICE"
-                cp -r "$TOP_VOICE" "$CARBON_VOICE"
-              fi
-
-              # Fix carbon module resolution
-              CARBON_EXT="$out/lib/node_modules/openclaw/dist/extensions/discord/node_modules/@buape"
-              CARBON_TOP="$out/lib/node_modules/openclaw/node_modules/@buape"
-              if [ -d "$CARBON_EXT" ] && [ ! -d "$CARBON_TOP" ]; then
-                mkdir -p "$out/lib/node_modules/openclaw/node_modules"
-                cp -r "$CARBON_EXT" "$CARBON_TOP"
-              fi
-
-              # Fix AJV JSON Schema 2020-12 support
-              sed -i 's|from "ajv"|from "ajv/dist/2020.js"|' $out/lib/node_modules/openclaw/node_modules/@mariozechner/pi-ai/dist/utils/validation.js
 
               mkdir -p $out/bin
               makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
@@ -104,7 +76,7 @@
               platforms = platforms.linux;
               mainProgram = "openclaw";
             };
-          });
+          };
 
           quick-setup = pkgs.writeShellScriptBin "openclaw-setup" (builtins.readFile ./scripts/quick-setup.sh);
 
