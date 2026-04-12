@@ -78,6 +78,7 @@
             '';
 
             installPhase = ''
+              runHook preInstall
               mkdir -p $out/lib/node_modules/openclaw
               cp -r . $out/lib/node_modules/openclaw/
 
@@ -85,6 +86,7 @@
               makeWrapper "${nodejs}/bin/node" "$out/bin/openclaw" \
                 --add-flags "$out/lib/node_modules/openclaw/openclaw.mjs" \
                 --prefix NODE_PATH "$out/lib/node_modules"
+              runHook postInstall
             '';
 
             meta = with pkgs.lib; {
